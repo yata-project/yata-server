@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 
@@ -85,7 +86,7 @@ func (s *server) GetLists(w http.ResponseWriter, r *http.Request) {
 func (s *server) InsertList(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err)
+		log.Errorln(err)
 		writeInternalErrorResponse(w)
 		return
 	}
@@ -93,14 +94,14 @@ func (s *server) InsertList(w http.ResponseWriter, r *http.Request) {
 	var in InsertListInput
 	err = json.Unmarshal(b, &in)
 	if err != nil {
-		log.Println(err)
+		log.Errorln(err)
 		writeInternalErrorResponse(w)
 		return
 	}
 
 	uid, ok := r.Header["User"]
 	if !ok {
-		log.Println("UserId not found")
+		log.Errorln("UserId not provided")
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("UserId is missing"))
 		return
@@ -115,7 +116,7 @@ func (s *server) InsertList(w http.ResponseWriter, r *http.Request) {
 
 	av, err := dynamodbattribute.MarshalMap(yl)
 	if err != nil {
-		log.Println(err)
+		log.Errorln(err)
 		writeInternalErrorResponse(w)
 		return
 	}
@@ -126,7 +127,7 @@ func (s *server) InsertList(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Println("Error: %+v", err)
+			log.Errorln(err)
 			switch aerr.Code() {
 			case dynamodb.ErrCodeConditionalCheckFailedException:
 				// TODO: get the item and check that the title matches before throwing a 409
@@ -138,7 +139,7 @@ func (s *server) InsertList(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		log.Println(err)
+		log.Errorln(err)
 		writeInternalErrorResponse(w)
 		return
 	}
@@ -146,7 +147,7 @@ func (s *server) InsertList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte{})
 	if err != nil {
-		log.Println(err)
+		log.Errorln(err)
 	}
 }
 
@@ -158,6 +159,7 @@ func (s *server) start() {
 }
 
 func main() {
+	log.SetReportCaller(true)
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String("us-west-2"),
 		Credentials: credentials.NewSharedCredentials("", "yata"),
@@ -166,8 +168,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	s := server{
 		dynamo: dynamodb.New(sess),
