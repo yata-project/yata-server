@@ -6,6 +6,15 @@ import (
 	"github.com/TheYeung1/yata-server/model"
 )
 
+type ListNotFoundError struct {
+	uid model.UserID
+	lid model.ListID
+}
+
+func (e ListNotFoundError) Error() string {
+	return fmt.Sprintf("List not found. UserID: %s, ListID: %s", e.uid, e.lid)
+}
+
 type ListExistsError struct {
 	uid model.UserID
 	lid model.ListID

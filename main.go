@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -38,9 +37,37 @@ func writeInternalErrorResponse(w http.ResponseWriter) {
 	w.Write([]byte("Sorry! Something went wrong"))
 }
 
-func (s *server) GetLists(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("GetLists")
+func (s *server) GetList(w http.ResponseWriter, r *http.Request) {
+	v := mux.Vars(r)
 
+	userID := model.UserID(r.Header.Get("User"))
+	listID := model.ListID(v["listID"])
+
+	yl, err := s.ydb.GetList(userID, listID)
+	if err != nil {
+		if lnf, ok := err.(database.ListNotFoundError); ok {
+			log.Infoln(lnf)
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("List not found"))
+			return
+		}
+		log.Errorln(err)
+		writeInternalErrorResponse(w)
+		return
+	}
+
+	res, err := json.Marshal(yl)
+	if err != nil {
+		log.Errorln(err)
+		writeInternalErrorResponse(w)
+	}
+	_, err = w.Write(res)
+	if err != nil {
+		log.Errorln(err)
+	}
+}
+
+func (s *server) GetLists(w http.ResponseWriter, r *http.Request) {
 	userID := model.UserID(r.Header.Get("User"))
 
 	yl, err := s.ydb.GetLists(userID)
@@ -116,6 +143,7 @@ func (s *server) start() {
 	r := mux.NewRouter()
 	r.HandleFunc("/lists", s.GetLists).Methods(http.MethodGet)
 	r.HandleFunc("/lists", s.InsertList).Methods(http.MethodPut)
+	r.HandleFunc("/lists/{listID}/", s.GetList).Methods(http.MethodGet)
 	log.Fatal(http.ListenAndServe(":8888", r))
 }
 

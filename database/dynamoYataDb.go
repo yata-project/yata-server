@@ -31,6 +31,13 @@ func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (mod
 		return model.YataList{}, err
 	}
 
+	if queryResults.Item == nil {
+		return model.YataList{}, ListNotFoundError{
+			uid: uid,
+			lid: lid,
+		}
+	}
+
 	yl := model.YataList{}
 	err = dynamodbattribute.UnmarshalMap(queryResults.Item, &yl)
 	if err != nil {
