@@ -6,13 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/TheYeung1/yata-server/database"
+	"github.com/TheYeung1/yata-server/model"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,13 +21,7 @@ import (
 )
 
 type server struct {
-	dynamo *dynamodb.DynamoDB
-}
-
-type YataList struct {
-	UserID string
-	ListID string
-	Title  string
+	ydb database.YataDatabase
 }
 
 type InsertListInput struct {
@@ -48,26 +41,11 @@ func writeInternalErrorResponse(w http.ResponseWriter) {
 func (s *server) GetLists(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("GetLists")
 
-	userID := r.Header.Get("User")
-	// TODO: use QueryPages to go over paginated results
-	queryResults, err := s.dynamo.Query(&dynamodb.QueryInput{
-		TableName:              aws.String("ListTable"),
-		KeyConditionExpression: aws.String("UserID = :user"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":user": &dynamodb.AttributeValue{
-				S: aws.String(userID),
-			},
-		},
-	})
-	if err != nil {
-		log.Println(err)
-		writeInternalErrorResponse(w)
-	}
+	userID := model.UserID(r.Header.Get("User"))
 
-	yl := []YataList{}
-	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &yl)
+	yl, err := s.ydb.GetLists(userID)
 	if err != nil {
-		log.Println(err)
+		log.Errorln(err)
 		writeInternalErrorResponse(w)
 	}
 
@@ -108,40 +86,23 @@ func (s *server) InsertList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: assert input lengths
-	yl := YataList{
-		UserID: uid[0],
-		ListID: in.ListID,
+	yl := model.YataList{
+		UserID: model.UserID(uid[0]),
+		ListID: model.ListID(in.ListID),
 		Title:  in.Title,
 	}
 
-	av, err := dynamodbattribute.MarshalMap(yl)
+	// insert list to db here
+	err = s.ydb.InsertList(yl.UserID, yl)
 	if err != nil {
-		log.Errorln(err)
-		writeInternalErrorResponse(w)
-		return
-	}
-	_, err = s.dynamo.PutItem(&dynamodb.PutItemInput{
-		TableName:           aws.String("ListTable"),
-		ConditionExpression: aws.String("attribute_not_exists(ListID)"),
-		Item:                av,
-	})
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			log.Errorln(err)
-			switch aerr.Code() {
-			case dynamodb.ErrCodeConditionalCheckFailedException:
-				// TODO: get the item and check that the title matches before throwing a 409
-				w.WriteHeader(http.StatusConflict)
-				w.Write([]byte("List already exists"))
-				return
-			default:
-				writeInternalErrorResponse(w)
-				return
-			}
+		if errnf, ok := err.(database.ListExistsError); ok {
+			log.Warnln(errnf)
+			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte("List already exists"))
+			return
 		}
 		log.Errorln(err)
 		writeInternalErrorResponse(w)
-		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -160,6 +121,7 @@ func (s *server) start() {
 
 func main() {
 	log.SetReportCaller(true)
+
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String("us-west-2"),
 		Credentials: credentials.NewSharedCredentials("", "yata"),
@@ -169,8 +131,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	yataDynamo := &database.DynamoDbYataDatabase{
+		Dynamo: dynamodb.New(sess),
+	}
+
 	s := server{
-		dynamo: dynamodb.New(sess),
+		ydb: yataDynamo,
 	}
 	s.start()
 }
