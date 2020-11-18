@@ -102,3 +102,75 @@ func (db *DynamoDbYataDatabase) InsertList(uid model.UserID, yl model.YataList) 
 	}
 	return nil
 }
+
+func (db *DynamoDbYataDatabase) GetAllItems(uid model.UserID) ([]model.YataItem, error) {
+	queryResults, err := db.Dynamo.Query(&dynamodb.QueryInput{
+		TableName:              aws.String("ItemsTable"),
+		KeyConditionExpression: aws.String("UserID = :user"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":user": &dynamodb.AttributeValue{
+				S: aws.String(string(uid)),
+			},
+		},
+	})
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	items := []model.YataItem{}
+	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &items)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return items, nil
+}
+
+func (db *DynamoDbYataDatabase) GetListItems(uid model.UserID, lid model.ListID) ([]model.YataItem, error) {
+	queryResults, err := db.Dynamo.Query(&dynamodb.QueryInput{
+		TableName:              aws.String("ItemsTable"),
+		KeyConditionExpression: aws.String("UserID = :user AND begins_with(#listIDuserID, :list)"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":user": &dynamodb.AttributeValue{
+				S: aws.String(string(uid)),
+			},
+			":list": &dynamodb.AttributeValue{
+				S: aws.String(string(lid)),
+			},
+		},
+		ExpressionAttributeNames: map[string]*string{
+			"#listIDuserID": aws.String("ListID-ItemID"),
+		},
+	})
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	items := []model.YataItem{}
+	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &items)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return items, nil
+}
+
+func (db *DynamoDbYataDatabase) InsertItem(item model.YataItem) error {
+	// TODO: make sure that the list exists first
+
+	av, err := dynamodbattribute.MarshalMap(item)
+	if err != nil {
+		log.Errorln(err)
+		return err
+	}
+	av["ListID-ItemID"] = &dynamodb.AttributeValue{
+		S: aws.String(string(item.ListID) + ":" + string(item.ItemID)),
+	}
+	_, err = db.Dynamo.PutItem(&dynamodb.PutItemInput{
+		TableName: aws.String("ItemsTable"),
+		Item:      av,
+	})
+	return err
+}
