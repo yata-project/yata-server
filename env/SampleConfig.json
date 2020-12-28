@@ -1,0 +1,5 @@
+{
+    "AppClientID": "appClientID of user pool",
+    "Region": "us-west-2",
+    "UserPoolID": "ID of userPool"
+}

@@ -7,13 +7,16 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/TheYeung1/yata-server/config"
 	"github.com/TheYeung1/yata-server/database"
+	"github.com/TheYeung1/yata-server/middleware/auth"
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/gorilla/mux"
 )
 
 type Server struct {
-	Ydb database.YataDatabase
+	CognitoCfg config.AwsCognitoUserPoolConfig
+	Ydb        database.YataDatabase
 }
 
 type InsertListInput struct {
@@ -231,7 +234,9 @@ func (s *Server) GetAllItems(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Start() {
+	log.Infoln("Starting Server")
 	r := mux.NewRouter()
+	r.Use(auth.CognitoJwtAuthMiddleware{Cfg: s.CognitoCfg}.Execute)
 	r.HandleFunc("/items", s.GetAllItems).Methods(http.MethodGet)
 	r.HandleFunc("/lists", s.GetLists).Methods(http.MethodGet)
 	r.HandleFunc("/lists", s.InsertList).Methods(http.MethodPut)
