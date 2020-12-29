@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/TheYeung1/yata-server/auth/jwk"
 	"github.com/TheYeung1/yata-server/config"
+	"github.com/TheYeung1/yata-server/server/request"
 )
 
 type CognitoJwtAuthMiddleware struct {
@@ -40,13 +42,20 @@ func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handl
 			writeUnauthorizedHttpResponse(w, "Invalid JWT token")
 			return
 		}
-		if err = validateClaims(token.Claims, middleware.Cfg); err != nil {
+		cognitoClaims, ok := token.Claims.(*CognitoJwtClaims)
+		if !ok {
+			log.Errorf("Claims could not be casted to Cognito type: %+v", token.Claims)
+			writeInternalErrorResponse(w, "Sorry! Something went wrong")
+			return
+		}
+
+		if err = validateClaims(cognitoClaims, middleware.Cfg); err != nil {
 			log.Errorf("Invalid Claims: %+v", token.Claims, err)
 			writeUnauthorizedHttpResponse(w, "Invalid Claims")
 			return
 		}
 
-		// TODO: set the user ID to be used later?
+		r = r.WithContext(context.WithValue(r.Context(), request.UserIDContextKey, cognitoClaims.Subject))
 
 		if token.Valid {
 			next.ServeHTTP(w, r)
@@ -68,18 +77,14 @@ func trimBearerPrefix(token string) string {
 	return strings.TrimPrefix(token, "Bearer ")
 }
 
-func validateClaims(claims jwt.Claims, cfg config.AwsCognitoUserPoolConfig) error {
-	cognitoClaims, ok := claims.(*CognitoJwtClaims)
-	if !ok {
-		return errors.New("Invalid claims")
-	}
-	if !cognitoClaims.VerifyAudience(cfg.AppClientID, true) {
+func validateClaims(claims *CognitoJwtClaims, cfg config.AwsCognitoUserPoolConfig) error {
+	if !claims.VerifyAudience(cfg.AppClientID, true) {
 		return errors.New("Invalid audience")
 	}
-	if !cognitoClaims.VerifyIssuer(getTokenIssuer(cfg), true) {
+	if !claims.VerifyIssuer(getTokenIssuer(cfg), true) {
 		return errors.New("Invalid issuer")
 	}
-	if !cognitoClaims.VerifyTokenUse("id") {
+	if !claims.VerifyTokenUse("id") {
 		return errors.New("Invalid token use")
 	}
 	return nil
@@ -96,5 +101,10 @@ func writeUnauthorizedHttpResponse(w http.ResponseWriter, msg string) {
 
 func writeBadRequestHttpResponse(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte(msg))
+}
+
+func writeInternalErrorResponse(w http.ResponseWriter, msg string) {
+	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte(msg))
 }

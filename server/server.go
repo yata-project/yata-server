@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/TheYeung1/yata-server/database"
 	"github.com/TheYeung1/yata-server/middleware/auth"
 	"github.com/TheYeung1/yata-server/model"
+	"github.com/TheYeung1/yata-server/server/request"
 	"github.com/gorilla/mux"
 )
 
@@ -41,7 +43,12 @@ func writeInternalErrorResponse(w http.ResponseWriter) {
 func (s *Server) GetList(w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 
-	userID := model.UserID(r.Header.Get("User"))
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		log.Error("Could not get userID from request %+v", r)
+		writeInternalErrorResponse(w)
+		return
+	}
 	listID := model.ListID(v["listID"])
 
 	yl, err := s.Ydb.GetList(userID, listID)
@@ -69,7 +76,12 @@ func (s *Server) GetList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetLists(w http.ResponseWriter, r *http.Request) {
-	userID := model.UserID(r.Header.Get("User"))
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		log.Error("Could not get userID from request %+v", r)
+		writeInternalErrorResponse(w)
+		return
+	}
 
 	yl, err := s.Ydb.GetLists(userID)
 	if err != nil {
@@ -105,11 +117,10 @@ func (s *Server) InsertList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid, ok := r.Header["User"]
-	if !ok {
-		log.Errorln("UserId not provided")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("UserId is missing"))
+	uid, err := getUserIDFromContext(r)
+	if err != nil {
+		log.Error("Could not get userID from request %+v", r)
+		writeInternalErrorResponse(w)
 		return
 	}
 
@@ -157,11 +168,10 @@ func (s *Server) InsertListItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid, ok := r.Header["User"]
-	if !ok {
-		log.Errorln("UserId not provided")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("UserId is missing"))
+	uid, err := getUserIDFromContext(r)
+	if err != nil {
+		log.Error("Could not get userID from request %+v", r)
+		writeInternalErrorResponse(w)
 		return
 	}
 	v := mux.Vars(r)
@@ -191,7 +201,12 @@ func (s *Server) InsertListItem(w http.ResponseWriter, r *http.Request) {
 func (s *Server) GetListItems(w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 
-	userID := model.UserID(r.Header.Get("User"))
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		log.Error("Could not get userID from request %+v", r)
+		writeInternalErrorResponse(w)
+		return
+	}
 	listID := model.ListID(v["listID"])
 
 	items, err := s.Ydb.GetListItems(userID, listID)
@@ -213,7 +228,12 @@ func (s *Server) GetListItems(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetAllItems(w http.ResponseWriter, r *http.Request) {
-	userID := model.UserID(r.Header.Get("User"))
+	userID, err := getUserIDFromContext(r)
+	if err != nil {
+		log.Error("Could not get userID from request %+v", r)
+		writeInternalErrorResponse(w)
+		return
+	}
 
 	items, err := s.Ydb.GetAllItems(userID)
 	if err != nil {
@@ -244,4 +264,13 @@ func (s *Server) Start() {
 	r.HandleFunc("/lists/{listID}/items", s.GetListItems).Methods(http.MethodGet)
 	r.HandleFunc("/lists/{listID}/items", s.InsertListItem).Methods(http.MethodPut)
 	log.Fatal(http.ListenAndServe(":8888", r))
+}
+
+func getUserIDFromContext(r *http.Request) (model.UserID, error) {
+	val := r.Context().Value(request.UserIDContextKey)
+	str, ok := val.(string)
+	if ok {
+		return model.UserID(str), nil
+	}
+	return "", errors.New("UserID Context is not a string value")
 }
