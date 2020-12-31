@@ -1,5 +1,11 @@
 # yata-server
 
+## AWS Config
+In the AWS credentials for your system, make a profile named "yata" to use for the server.
+
+## Setting Cognito config
+In the env folder, create a file named `CognitoConfig.json`. Take a peek at `SampleConfig.json` to see the values needed to identify the cognito pool to use. 
+
 ## Getting JWT token
 The following domain takes you to the Hosted UI to log in and get a JWT token.
 ```
