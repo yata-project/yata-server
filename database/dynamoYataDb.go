@@ -11,12 +11,14 @@ import (
 )
 
 type DynamoDbYataDatabase struct {
-	Dynamo *dynamodb.DynamoDB
+	ListsTableName string
+	ItemsTableName string
+	Dynamo         *dynamodb.DynamoDB
 }
 
 func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (model.YataList, error) {
 	queryResults, err := db.Dynamo.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String("ListTable"),
+		TableName: aws.String(db.ListsTableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			"UserID": &dynamodb.AttributeValue{
 				S: aws.String(string(uid)),
@@ -49,7 +51,7 @@ func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (mod
 
 func (db *DynamoDbYataDatabase) GetLists(uid model.UserID) ([]model.YataList, error) {
 	queryResults, err := db.Dynamo.Query(&dynamodb.QueryInput{
-		TableName:              aws.String("ListTable"),
+		TableName:              aws.String(db.ListsTableName),
 		KeyConditionExpression: aws.String("UserID = :user"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":user": &dynamodb.AttributeValue{
@@ -78,7 +80,7 @@ func (db *DynamoDbYataDatabase) InsertList(uid model.UserID, yl model.YataList) 
 		return err
 	}
 	_, err = db.Dynamo.PutItem(&dynamodb.PutItemInput{
-		TableName:           aws.String("ListTable"),
+		TableName:           aws.String(db.ListsTableName),
 		ConditionExpression: aws.String("attribute_not_exists(ListID)"),
 		Item:                av,
 	})
@@ -105,7 +107,7 @@ func (db *DynamoDbYataDatabase) InsertList(uid model.UserID, yl model.YataList) 
 
 func (db *DynamoDbYataDatabase) GetAllItems(uid model.UserID) ([]model.YataItem, error) {
 	queryResults, err := db.Dynamo.Query(&dynamodb.QueryInput{
-		TableName:              aws.String("ItemsTable"),
+		TableName:              aws.String(db.ItemsTableName),
 		KeyConditionExpression: aws.String("UserID = :user"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":user": &dynamodb.AttributeValue{
@@ -129,7 +131,7 @@ func (db *DynamoDbYataDatabase) GetAllItems(uid model.UserID) ([]model.YataItem,
 
 func (db *DynamoDbYataDatabase) GetListItems(uid model.UserID, lid model.ListID) ([]model.YataItem, error) {
 	queryResults, err := db.Dynamo.Query(&dynamodb.QueryInput{
-		TableName:              aws.String("ItemsTable"),
+		TableName:              aws.String(db.ItemsTableName),
 		KeyConditionExpression: aws.String("UserID = :user AND begins_with(#listIDuserID, :list)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":user": &dynamodb.AttributeValue{
@@ -169,7 +171,7 @@ func (db *DynamoDbYataDatabase) InsertItem(item model.YataItem) error {
 		S: aws.String(string(item.ListID) + ":" + string(item.ItemID)),
 	}
 	_, err = db.Dynamo.PutItem(&dynamodb.PutItemInput{
-		TableName: aws.String("ItemsTable"),
+		TableName: aws.String(db.ItemsTableName),
 		Item:      av,
 	})
 	return err
