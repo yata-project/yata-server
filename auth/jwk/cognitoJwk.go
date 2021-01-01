@@ -67,7 +67,9 @@ func (jwks *AwsCognitoJWKSet) Populate() error {
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		log.WithError(err).Warn("failed to close jwks response body")
+	}
 	if err != nil {
 		log.Error("Could not read the json keys response")
 		return errors.New("Could not read json keys")
