@@ -24,6 +24,7 @@ var (
 	cognitoConfigFile    = flag.String("cognito-config", "env/CognitoConfig.json", "cognito config file; see env/SampleConfig.json for reference")
 	listsTableName       = flag.String("lists-table", "ListTable", "lists DynamoDB table name")
 	itemsTableName       = flag.String("items-table", "ItemsTable", "items DynamoDB table name")
+	logLevel             = flag.String("log-level", log.DebugLevel.String(), "log level")
 )
 
 func init() {
@@ -32,6 +33,12 @@ func init() {
 
 func main() {
 	log.SetReportCaller(true)
+	lgLvl, err := log.ParseLevel(*logLevel)
+	if err != nil {
+		log.Fatalf("failed to parse log level: %v", err)
+	}
+	log.SetLevel(lgLvl)
+	log.WithField("level", log.GetLevel().String()).Info("Log level set")
 
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(*awsRegion),
