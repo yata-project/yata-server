@@ -1,13 +1,12 @@
 package database
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	log "github.com/sirupsen/logrus"
 )
 
 type DynamoDbYataDatabase struct {
