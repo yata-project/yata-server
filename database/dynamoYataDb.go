@@ -19,10 +19,10 @@ func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (mod
 	queryResults, err := db.Dynamo.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(db.ListsTableName),
 		Key: map[string]*dynamodb.AttributeValue{
-			"UserID": &dynamodb.AttributeValue{
+			"UserID": {
 				S: aws.String(string(uid)),
 			},
-			"ListID": &dynamodb.AttributeValue{
+			"ListID": {
 				S: aws.String(string(lid)),
 			},
 		},
@@ -53,7 +53,7 @@ func (db *DynamoDbYataDatabase) GetLists(uid model.UserID) ([]model.YataList, er
 		TableName:              aws.String(db.ListsTableName),
 		KeyConditionExpression: aws.String("UserID = :user"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":user": &dynamodb.AttributeValue{
+			":user": {
 				S: aws.String(string(uid)),
 			},
 		},
@@ -109,7 +109,7 @@ func (db *DynamoDbYataDatabase) GetAllItems(uid model.UserID) ([]model.YataItem,
 		TableName:              aws.String(db.ItemsTableName),
 		KeyConditionExpression: aws.String("UserID = :user"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":user": &dynamodb.AttributeValue{
+			":user": {
 				S: aws.String(string(uid)),
 			},
 		},
@@ -133,10 +133,10 @@ func (db *DynamoDbYataDatabase) GetListItems(uid model.UserID, lid model.ListID)
 		TableName:              aws.String(db.ItemsTableName),
 		KeyConditionExpression: aws.String("UserID = :user AND begins_with(#listIDuserID, :list)"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":user": &dynamodb.AttributeValue{
+			":user": {
 				S: aws.String(string(uid)),
 			},
-			":list": &dynamodb.AttributeValue{
+			":list": {
 				S: aws.String(string(lid)),
 			},
 		},
