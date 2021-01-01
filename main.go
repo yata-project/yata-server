@@ -41,9 +41,8 @@ func main() {
 		Region:      aws.String(*awsRegion),
 		Credentials: credentials.NewSharedCredentials("", *awsCredentialProfile),
 	})
-
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("failed to create new AWS session")
 	}
 
 	yataDynamo := &database.DynamoDbYataDatabase{
@@ -54,11 +53,11 @@ func main() {
 
 	cognitoCfgFile, err := ioutil.ReadFile(*cognitoConfigFile)
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("failed to read cognito config file")
 	}
 	var cognitoConfig config.AwsCognitoUserPoolConfig
 	if err := json.Unmarshal(cognitoCfgFile, &cognitoConfig); err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("failed to unmarshal cognito config file")
 	}
 
 	s := server.Server{

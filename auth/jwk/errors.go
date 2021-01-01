@@ -7,5 +7,5 @@ type JWKNotFoundError struct {
 }
 
 func (err *JWKNotFoundError) Error() string {
-	return fmt.Sprintf("Key %s not found", err.Kid)
+	return fmt.Sprintf("key %q not found", err.Kid)
 }

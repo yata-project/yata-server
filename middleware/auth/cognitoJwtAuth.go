@@ -22,12 +22,12 @@ func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handl
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := r.Header.Get("Authorization")
 		if len(tokenString) == 0 {
-			log.Error("Request does not contain an Auth token")
+			log.Error("request does not contain an Auth token")
 			writeBadRequestHttpResponse(w, "Authorization Missing")
 			return
 		}
 		if err := validateBearerToken(tokenString); err != nil {
-			log.Error(err)
+			log.WithError(err).Error("bearer token not valid")
 			writeBadRequestHttpResponse(w, "Bearer token missing")
 			return
 		}
@@ -37,19 +37,19 @@ func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handl
 
 		token, err := jwt.ParseWithClaims(tokenString, &CognitoJwtClaims{}, keys.GetValidationKey)
 		if err != nil {
-			log.Error("Error parsing JWT token: ", err)
+			log.WithError(err).Error("failed to parse JWT token")
 			writeUnauthorizedHttpResponse(w, "Invalid JWT token")
 			return
 		}
 		cognitoClaims, ok := token.Claims.(*CognitoJwtClaims)
 		if !ok {
-			log.Errorf("Claims could not be casted to Cognito type: %+v", token.Claims)
+			log.WithField("claims", token.Claims).Error("claims could not be casted to Cognito type")
 			writeInternalErrorResponse(w, "Sorry! Something went wrong")
 			return
 		}
 
 		if err = validateClaims(cognitoClaims, middleware.Cfg); err != nil {
-			log.Errorf("Invalid Claims: %+v", token.Claims, err)
+			log.WithError(err).WithField("claims", token.Claims).Error("claims are not valid")
 			writeUnauthorizedHttpResponse(w, "Invalid Claims")
 			return
 		}
@@ -59,7 +59,7 @@ func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handl
 		if token.Valid {
 			next.ServeHTTP(w, r)
 		} else {
-			log.Errorf("Invalid token: %+v", token)
+			log.WithField("token", token).Error("token is not valid")
 			writeUnauthorizedHttpResponse(w, "Invalid Token")
 		}
 	})
@@ -78,13 +78,13 @@ func trimBearerPrefix(token string) string {
 
 func validateClaims(claims *CognitoJwtClaims, cfg config.AwsCognitoUserPoolConfig) error {
 	if !claims.VerifyAudience(cfg.AppClientID, true) {
-		return errors.New("Invalid audience")
+		return errors.New("invalid audience")
 	}
 	if !claims.VerifyIssuer(getTokenIssuer(cfg), true) {
-		return errors.New("Invalid issuer")
+		return errors.New("invalid issuer")
 	}
 	if !claims.VerifyTokenUse("id") {
-		return errors.New("Invalid token use")
+		return errors.New("invalid token use")
 	}
 	return nil
 }

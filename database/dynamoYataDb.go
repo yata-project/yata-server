@@ -28,7 +28,7 @@ func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (mod
 		},
 	})
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to get item")
 		return model.YataList{}, err
 	}
 
@@ -42,7 +42,7 @@ func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (mod
 	yl := model.YataList{}
 	err = dynamodbattribute.UnmarshalMap(queryResults.Item, &yl)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to unmarshal map")
 		return model.YataList{}, err
 	}
 	return yl, nil
@@ -59,14 +59,14 @@ func (db *DynamoDbYataDatabase) GetLists(uid model.UserID) ([]model.YataList, er
 		},
 	})
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to query")
 		return nil, err
 	}
 
 	yl := []model.YataList{}
 	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &yl)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to unmarshal list of maps")
 		return nil, err
 	}
 	return yl, nil
@@ -75,7 +75,7 @@ func (db *DynamoDbYataDatabase) GetLists(uid model.UserID) ([]model.YataList, er
 func (db *DynamoDbYataDatabase) InsertList(uid model.UserID, yl model.YataList) error {
 	av, err := dynamodbattribute.MarshalMap(yl)
 	if err != nil {
-		log.Errorln(err)
+		log.WithError(err).Error("failed to marshal map")
 		return err
 	}
 	_, err = db.Dynamo.PutItem(&dynamodb.PutItemInput{
@@ -87,18 +87,18 @@ func (db *DynamoDbYataDatabase) InsertList(uid model.UserID, yl model.YataList) 
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeConditionalCheckFailedException:
-				// TODO: get the item and check that the title matches before throwing a 409
-				log.Warnln(aerr)
+				// TODO: get the item and check that the title matches before throwing a 409.
+				log.WithError(aerr).Warn("list already exists")
 				return ListExistsError{
 					uid: uid,
 					lid: yl.ListID,
 				}
 			default:
-				log.Errorln(aerr)
+				log.WithError(aerr).Error("failed to put item")
 				return err
 			}
 		}
-		log.Errorln(err)
+		log.WithError(err).Error("failed to put item")
 		return err
 	}
 	return nil
@@ -115,14 +115,14 @@ func (db *DynamoDbYataDatabase) GetAllItems(uid model.UserID) ([]model.YataItem,
 		},
 	})
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to query")
 		return nil, err
 	}
 
 	items := []model.YataItem{}
 	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &items)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to unmarshal list of maps")
 		return nil, err
 	}
 	return items, nil
@@ -145,14 +145,14 @@ func (db *DynamoDbYataDatabase) GetListItems(uid model.UserID, lid model.ListID)
 		},
 	})
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to query")
 		return nil, err
 	}
 
 	items := []model.YataItem{}
 	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &items)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("failed to unmarshal list of maps")
 		return nil, err
 	}
 	return items, nil
@@ -163,7 +163,7 @@ func (db *DynamoDbYataDatabase) InsertItem(item model.YataItem) error {
 
 	av, err := dynamodbattribute.MarshalMap(item)
 	if err != nil {
-		log.Errorln(err)
+		log.WithError(err).Error("failed to marshal map")
 		return err
 	}
 	av["ListID-ItemID"] = &dynamodb.AttributeValue{
@@ -173,5 +173,9 @@ func (db *DynamoDbYataDatabase) InsertItem(item model.YataItem) error {
 		TableName: aws.String(db.ItemsTableName),
 		Item:      av,
 	})
-	return err
+	if err != nil {
+		log.WithError(err).Error("failed to put item")
+		return err
+	}
+	return nil
 }
