@@ -132,3 +132,14 @@ values.
    1. Remotely: `git push <fork name> --delete <name>`.
 1. Update your fork: `git push <fork name>`.
 
+## Style Guide
+
+1. Code should be formatted with `make fmt`.
+1. Code should be vetted with `make vet`.
+1. `%q` is preferred over `%s` when printing strings.
+1. Imports should be sorted into two groups: standard library and everything
+   else.
+1. When logging an error use `.WithError(err)` and a helpful error message. Ex:
+   `log.WithError(err).Error("failed to foo the bars")`.
+1. Error messages should start with a lowercase letter. Ex: `failed to foo` not
+   `Failed to foo`.
