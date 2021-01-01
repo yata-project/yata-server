@@ -11,10 +11,9 @@ import (
 	"math/big"
 	"net/http"
 
+	"github.com/TheYeung1/yata-server/config"
 	"github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/TheYeung1/yata-server/config"
 )
 
 type AwsCognitoJWKSet struct {

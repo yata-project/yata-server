@@ -6,14 +6,13 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/TheYeung1/yata-server/config"
 	"github.com/TheYeung1/yata-server/database"
 	"github.com/TheYeung1/yata-server/middleware/auth"
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/TheYeung1/yata-server/server/request"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 type Server struct {
