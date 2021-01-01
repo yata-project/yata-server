@@ -36,7 +36,7 @@ type InsertListItemInput struct {
 
 func writeInternalErrorResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("Sorry! Something went wrong"))
+	_, _ = w.Write([]byte("Sorry! Something went wrong"))
 }
 
 func (s *Server) GetList(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,7 @@ func (s *Server) GetList(w http.ResponseWriter, r *http.Request) {
 		if lnf, ok := err.(database.ListNotFoundError); ok {
 			log.Infoln(lnf)
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("List not found"))
+			_, _ = w.Write([]byte("List not found"))
 			return
 		}
 		log.Errorln(err)
@@ -136,7 +136,7 @@ func (s *Server) InsertList(w http.ResponseWriter, r *http.Request) {
 		if errnf, ok := err.(database.ListExistsError); ok {
 			log.Warnln(errnf)
 			w.WriteHeader(http.StatusConflict)
-			w.Write([]byte("List already exists"))
+			_, _ = w.Write([]byte("List already exists"))
 			return
 		}
 		log.Errorln(err)

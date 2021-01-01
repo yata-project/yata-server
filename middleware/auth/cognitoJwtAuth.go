@@ -95,15 +95,15 @@ func getTokenIssuer(cfg config.AwsCognitoUserPoolConfig) string {
 
 func writeUnauthorizedHttpResponse(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte(msg))
+	_, _ = w.Write([]byte(msg))
 }
 
 func writeBadRequestHttpResponse(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte(msg))
+	_, _ = w.Write([]byte(msg))
 }
 
 func writeInternalErrorResponse(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(msg))
+	_, _ = w.Write([]byte(msg))
 }
