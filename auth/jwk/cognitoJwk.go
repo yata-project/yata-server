@@ -37,18 +37,18 @@ type cognitoJWKMap struct {
 
 func (jwks *AwsCognitoJWKSet) GetValidationKey(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-		return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 	}
 
 	kid, err := getKid(token)
 	if err != nil {
-		log.Error("Could not find key in header")
-		return nil, errors.New("Key does not exist")
+		log.WithError(err).Error("could not find key in header")
+		return nil, errors.New("key does not exist")
 	}
 
 	// TODO: cache the keys
 	if err := jwks.Populate(); err != nil {
-		log.Error(err)
+		log.WithError(err).Error("failed to populate the jwks")
 		return nil, err
 	}
 
@@ -60,10 +60,11 @@ func (jwks *AwsCognitoJWKSet) GetValidationKey(token *jwt.Token) (interface{}, e
 }
 
 func (jwks *AwsCognitoJWKSet) Populate() error {
+	// TODO: Do not use the default http client; it has no timeout set!
 	resp, err := http.Get(jwks.Config.GetJWKEndpoint())
 	if err != nil {
-		log.Error("Could not get the json keys")
-		return errors.New("Could not get json web token")
+		log.WithError(err).Error("could not get the json keys")
+		return errors.New("could not get json web token")
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
@@ -71,15 +72,15 @@ func (jwks *AwsCognitoJWKSet) Populate() error {
 		log.WithError(err).Warn("failed to close jwks response body")
 	}
 	if err != nil {
-		log.Error("Could not read the json keys response")
-		return errors.New("Could not read json keys")
+		log.WithError(err).Error("could not read the json keys response")
+		return errors.New("could not read json keys")
 	}
 
 	var cognitoJwks cognitoJWKMap
 	err = json.Unmarshal(b, &cognitoJwks)
 	if err != nil {
-		log.Error("Could not unmarshal json keys")
-		return errors.New("Could not unmarshal json keys")
+		log.WithError(err).Error("could not unmarshal json keys")
+		return errors.New("could not unmarshal json keys")
 	}
 
 	jwks.keys = make(map[string]AwsCognitoJWK)
@@ -92,12 +93,12 @@ func (jwks *AwsCognitoJWKSet) Populate() error {
 func (key *AwsCognitoJWK) ToSigningKey() (interface{}, error) {
 	decodedModulo, err := base64.RawURLEncoding.DecodeString(key.N)
 	if err != nil {
-		log.Error(err)
+		log.WithError(err).Error("failed to decode modulo")
 		return nil, err
 	}
 	decodedExponent, err := base64.RawURLEncoding.DecodeString(key.E)
 	if err != nil {
-		log.Error(err)
+		log.WithError(err).Error("failed to decode exponent")
 		return nil, err
 	}
 	if len(decodedExponent) < 4 {
@@ -118,7 +119,7 @@ func getKid(token *jwt.Token) (string, error) {
 	}
 	kidStr, ok := kid.(string)
 	if !ok {
-		return "", errors.New("Invalid type for kid")
+		return "", errors.New("invalid type for kid")
 	}
 	return kidStr, nil
 }

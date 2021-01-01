@@ -12,7 +12,7 @@ type ListNotFoundError struct {
 }
 
 func (e ListNotFoundError) Error() string {
-	return fmt.Sprintf("List not found. UserID: %s, ListID: %s", e.uid, e.lid)
+	return fmt.Sprintf("list not found. UserID: %q, ListID: %q", e.uid, e.lid)
 }
 
 type ListExistsError struct {
@@ -21,5 +21,5 @@ type ListExistsError struct {
 }
 
 func (e ListExistsError) Error() string {
-	return fmt.Sprintf("List %s already exists for user %s", e.lid, e.uid)
+	return fmt.Sprintf("list %q already exists for user %q", e.lid, e.uid)
 }
