@@ -104,3 +104,31 @@ earlier.
 The yata server uses a series of optional command line flags to configure
 itself. Run `go run main.go --help` to view these flags and their default
 values.
+
+## Contributing
+
+1. (one time) Fork this repo.
+1. Pull down the latest: `git pull origin`.
+1. Checkout a new branch for your change with `git checkout -b <name>`. The
+   `<name>` should be prefixed with one of ["feat", "chore", "bugfix", "other"].
+   Examples:
+   1. `feat-add-logging`.
+   1. `chore-cleanup-feature-gate`.
+   1. `bugfix-handle-malformed-requests`.
+   1. `other-do-something-interesting`.
+1. Make your change. Reference the **Style Guide** below to ensure your changes
+   are consistent.
+1. Add tests (optional but strongly suggested).
+1. Test your change.
+1. Run `make` to format, vet, test, and build your changes. Make sure this
+   passes.
+1. Push to your fork.
+1. Create a pull request.
+1. Get your changes merged in.
+1. Checkout the `main` branch (`git checkout main`) and pull (`git pull origin`)
+   down the latest.
+1. Delete your new branch:
+   1. Locally: `git branch -d <name>`.
+   1. Remotely: `git push <fork name> --delete <name>`.
+1. Update your fork: `git push <fork name>`.
+
