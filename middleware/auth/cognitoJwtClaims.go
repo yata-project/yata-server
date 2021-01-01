@@ -9,7 +9,7 @@ import (
 type CognitoJwtClaims struct {
 	EmailVerified bool   `json:"email_verified"`
 	TokenUse      string `json:"token_use"`
-	Auth_Time     int64  `json:"auth_time"`
+	AuthTime      int64  `json:"auth_time"`
 	UserName      string `json:"cognito:username"`
 	GivenName     string `json:"given_name"`
 	Email         string `json:"email"`

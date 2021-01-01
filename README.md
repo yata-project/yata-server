@@ -143,3 +143,5 @@ values.
    `log.WithError(err).Error("failed to foo the bars")`.
 1. Error messages should start with a lowercase letter. Ex: `failed to foo` not
    `Failed to foo`.
+1. Use PascalCase or camelCase over other casings such as snake_case or
+   kebab-case.
