@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/TheYeung1/yata-server/database"
 	"github.com/TheYeung1/yata-server/middleware/auth"
 	"github.com/TheYeung1/yata-server/model"
-	"github.com/TheYeung1/yata-server/server/request"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,15 +16,6 @@ import (
 type Server struct {
 	CognitoCfg config.AwsCognitoUserPoolConfig
 	Ydb        database.YataDatabase
-}
-
-type InsertListInput struct {
-	ListID string
-	Title  string
-}
-
-type InsertListOutput struct {
-	ListID string
 }
 
 type InsertListItemInput struct {
@@ -95,56 +84,6 @@ func (s *Server) GetLists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = w.Write(res)
-	if err != nil {
-		log.WithError(err).Error("failed to write response")
-	}
-}
-
-func (s *Server) InsertList(w http.ResponseWriter, r *http.Request) {
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.WithError(err).Error("failed to read request")
-		writeInternalErrorResponse(w)
-		return
-	}
-
-	var in InsertListInput
-	err = json.Unmarshal(b, &in)
-	if err != nil {
-		log.WithError(err).Error("failed to unmarshal request")
-		writeInternalErrorResponse(w)
-		return
-	}
-
-	uid, err := getUserIDFromContext(r)
-	if err != nil {
-		log.WithError(err).Error("failed to get user ID from request context")
-		writeInternalErrorResponse(w)
-		return
-	}
-
-	// TODO: assert input lengths
-	yl := model.YataList{
-		UserID: model.UserID(uid[0]),
-		ListID: model.ListID(in.ListID),
-		Title:  in.Title,
-	}
-
-	// insert list to db here
-	err = s.Ydb.InsertList(yl.UserID, yl)
-	if err != nil {
-		if errnf, ok := err.(database.ListExistsError); ok {
-			log.WithError(errnf).Info("list not found")
-			w.WriteHeader(http.StatusConflict)
-			_, _ = w.Write([]byte("List already exists"))
-			return
-		}
-		log.WithError(err).Error("failed to insert list")
-		writeInternalErrorResponse(w)
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte{})
 	if err != nil {
 		log.WithError(err).Error("failed to write response")
 	}
@@ -260,17 +199,9 @@ func (s *Server) Start() {
 	r.HandleFunc("/items", s.GetAllItems).Methods(http.MethodGet)
 	r.HandleFunc("/lists", s.GetLists).Methods(http.MethodGet)
 	r.HandleFunc("/lists", s.InsertList).Methods(http.MethodPut)
+	r.HandleFunc("/lists-alternate", NewInsertListHandler(s.Ydb.InsertList)).Methods(http.MethodPut)
 	r.HandleFunc("/lists/{listID}/", s.GetList).Methods(http.MethodGet)
 	r.HandleFunc("/lists/{listID}/items", s.GetListItems).Methods(http.MethodGet)
 	r.HandleFunc("/lists/{listID}/items", s.InsertListItem).Methods(http.MethodPut)
 	log.Fatal(http.ListenAndServe(addr, r))
-}
-
-func getUserIDFromContext(r *http.Request) (model.UserID, error) {
-	val := r.Context().Value(request.UserIDContextKey)
-	str, ok := val.(string)
-	if ok {
-		return model.UserID(str), nil
-	}
-	return "", errors.New("userID context is not a string value")
 }
