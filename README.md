@@ -99,6 +99,38 @@ curl -H "Authorization: Bearer TOKEN" http://localhost:8888/items
 Where the `TOKEN` is the same `TOKEN` you retrieved when getting the JWT token
 earlier.
 
+#### Examples
+
+**Listing all your items**
+
+```
+curl -H "Authorization: Bearer TOKEN" http://localhost:8888/items
+```
+
+**Listing all your lists**
+
+```
+curl -H "Authorization: Bearer TOKEN" http://localhost:8888/lists
+```
+
+**Creating a list**
+
+```
+curl -X PUT -d '{"ListID":"ID1","Title":"My First List"}' -H "Authorization: Bearer TOKEN" http://localhost:8888/lists
+```
+
+**Adding an item to a list**
+
+```
+curl -X PUT -d '{"ItemID":"ID1","Content":"My First Item"}' -H "Authorization: Bearer TOKEN" http://localhost:8888/lists/<listID>/items
+```
+
+**Listing the items on a list**
+
+```
+curl -H "Authorization: Bearer TOKEN" http://localhost:8888/lists/<listID>/items
+```
+
 ### Advanced Configuration
 
 The yata server uses a series of optional command line flags to configure
@@ -145,3 +177,11 @@ values.
    `Failed to foo`.
 1. Use PascalCase or camelCase over other casings such as snake_case or
    kebab-case.
+
+## TODO
+
+Things we need to do. In no real order. Not comprehensive.
+
+1. More unit tests.
+1. Using a request-specific logger.
+1. How do we deploy this thing?

@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -54,7 +53,9 @@ func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handl
 			return
 		}
 
-		r = r.WithContext(context.WithValue(r.Context(), request.UserIDContextKey, cognitoClaims.Subject))
+		log.WithField("claims", cognitoClaims).Debug("claims validated")
+
+		r = r.WithContext(request.WithUserID(r.Context(), cognitoClaims.Subject))
 
 		if token.Valid {
 			next.ServeHTTP(w, r)
