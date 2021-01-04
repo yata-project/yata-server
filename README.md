@@ -101,6 +101,12 @@ earlier.
 
 #### Examples
 
+**Figuring out who you are**
+
+```
+curl -H "Authorization: Bearer TOKEN" http://localhost:8888/me
+```
+
 **Listing all your items**
 
 ```
