@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/TheYeung1/yata-server/server/request"
@@ -15,10 +16,9 @@ import (
 // A non-nil error will be returned if the userID cannot be found.
 // Deprecated: use request.UserID instead.
 func getUserIDFromContext(r *http.Request) (model.UserID, error) {
-	val := r.Context().Value(request.UserIDContextKey)
-	str, ok := val.(string)
+	val, ok := request.UserID(r.Context())
 	if ok {
-		return model.UserID(str), nil
+		return val, nil
 	}
 	return "", errors.New("userID context is not a string value")
 }
@@ -35,7 +35,7 @@ func bindJSON(r io.Reader, v interface{}) error {
 
 type responseError struct {
 	Code    string
-	Message string `json:"omitempty"`
+	Message string `json:",omitempty"`
 }
 
 // renderJSON writes the response code, sets the content type for JSON, and encodes v as JSON to w.
@@ -54,4 +54,17 @@ func renderInternalServerError(w http.ResponseWriter) {
 
 func renderBadRequest(w http.ResponseWriter, msg string) {
 	renderJSON(w, http.StatusBadRequest, responseError{Code: "BadRequest", Message: msg})
+}
+
+func validateListID(id model.ListID) error {
+	if len(id) == 0 {
+		return errors.New("ListID cannot be empty")
+	}
+	if len(id) > 100 {
+		return errors.New("ListID length cannot exceed 100 characters")
+	}
+	if len(id) != len(strings.TrimSpace(string(id))) {
+		return errors.New("ListID cannot be prefixed or suffixed with spaces")
+	}
+	return nil
 }

@@ -101,10 +101,34 @@ earlier.
 
 #### Examples
 
-**Creating a List**
+**Listing all your items**
 
 ```
-curl -X PUT -d '{"ListID":"ID1","Title":"title"}' -H "Authorization: Bearer TOKEN" http://localhost:8888/lists
+curl -H "Authorization: Bearer TOKEN" http://localhost:8888/items
+```
+
+**Listing all your lists**
+
+```
+curl -H "Authorization: Bearer TOKEN" http://localhost:8888/lists
+```
+
+**Creating a list**
+
+```
+curl -X PUT -d '{"ListID":"ID1","Title":"My First List"}' -H "Authorization: Bearer TOKEN" http://localhost:8888/lists
+```
+
+**Adding an item to a list**
+
+```
+curl -X PUT -d '{"ItemID":"ID1","Content":"My First Item"}' -H "Authorization: Bearer TOKEN" http://localhost:8888/lists/<listID>/items
+```
+
+**Listing the items on a list**
+
+```
+curl -H "Authorization: Bearer TOKEN" http://localhost:8888/lists/<listID>/items
 ```
 
 ### Advanced Configuration
@@ -158,6 +182,6 @@ values.
 
 Things we need to do. In no real order. Not comprehensive.
 
-1. Unit tests.
+1. More unit tests.
 1. Using a request-specific logger.
-1. Setting it up to be a Lambda function?
+1. How do we deploy this thing?

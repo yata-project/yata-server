@@ -53,6 +53,8 @@ func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handl
 			return
 		}
 
+		log.WithField("claims", cognitoClaims).Debug("claims validated")
+
 		r = r.WithContext(request.WithUserID(r.Context(), cognitoClaims.Subject))
 
 		if token.Valid {
