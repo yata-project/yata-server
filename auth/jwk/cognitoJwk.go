@@ -13,7 +13,6 @@ import (
 
 	"github.com/TheYeung1/yata-server/config"
 	"github.com/dgrijalva/jwt-go"
-	log "github.com/sirupsen/logrus"
 )
 
 type AwsCognitoJWKSet struct {
@@ -42,13 +41,11 @@ func (jwks *AwsCognitoJWKSet) GetValidationKey(token *jwt.Token) (interface{}, e
 
 	kid, err := getKid(token)
 	if err != nil {
-		log.WithError(err).Error("could not find key in header")
 		return nil, errors.New("key does not exist")
 	}
 
 	// TODO: cache the keys
 	if err := jwks.Populate(); err != nil {
-		log.WithError(err).Error("failed to populate the jwks")
 		return nil, err
 	}
 
@@ -63,23 +60,18 @@ func (jwks *AwsCognitoJWKSet) Populate() error {
 	// TODO: Do not use the default http client; it has no timeout set!
 	resp, err := http.Get(jwks.Config.GetJWKEndpoint())
 	if err != nil {
-		log.WithError(err).Error("could not get the json keys")
 		return errors.New("could not get json web token")
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
-	if err := resp.Body.Close(); err != nil {
-		log.WithError(err).Warn("failed to close jwks response body")
-	}
+	_ = resp.Body.Close()
 	if err != nil {
-		log.WithError(err).Error("could not read the json keys response")
 		return errors.New("could not read json keys")
 	}
 
 	var cognitoJwks cognitoJWKMap
 	err = json.Unmarshal(b, &cognitoJwks)
 	if err != nil {
-		log.WithError(err).Error("could not unmarshal json keys")
 		return errors.New("could not unmarshal json keys")
 	}
 
@@ -93,12 +85,10 @@ func (jwks *AwsCognitoJWKSet) Populate() error {
 func (key *AwsCognitoJWK) ToSigningKey() (interface{}, error) {
 	decodedModulo, err := base64.RawURLEncoding.DecodeString(key.N)
 	if err != nil {
-		log.WithError(err).Error("failed to decode modulo")
 		return nil, err
 	}
 	decodedExponent, err := base64.RawURLEncoding.DecodeString(key.E)
 	if err != nil {
-		log.WithError(err).Error("failed to decode exponent")
 		return nil, err
 	}
 	if len(decodedExponent) < 4 {

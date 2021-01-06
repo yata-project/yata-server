@@ -8,7 +8,6 @@ import (
 	"github.com/TheYeung1/yata-server/database"
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/TheYeung1/yata-server/server/request"
-	log "github.com/sirupsen/logrus"
 )
 
 type InsertListInput struct {
@@ -44,10 +43,11 @@ type InsertListOutput struct {
 }
 
 func (s *Server) InsertList(w http.ResponseWriter, r *http.Request) {
+	log := request.Logger(r.Context())
 	uid, ok := request.UserID(r.Context())
 	if !ok {
 		log.Error("failed to get user ID from request context")
-		renderInternalServerError(w)
+		renderInternalServerError(w, r)
 		return
 	}
 	log.WithField("userID", uid).Debug("insert list called")
@@ -55,14 +55,14 @@ func (s *Server) InsertList(w http.ResponseWriter, r *http.Request) {
 	var input InsertListInput
 	if err := bindJSON(r.Body, &input); err != nil {
 		log.WithError(err).Info("failed to bind input")
-		renderBadRequest(w, "malformed input")
+		renderBadRequest(w, r, "malformed input")
 		return
 	}
 	log.WithField("input", input).Debug("input bound")
 
 	if err := input.Validate(); err != nil {
 		log.WithError(err).Info("failed to normalize and validate input")
-		renderBadRequest(w, err.Error())
+		renderBadRequest(w, r, err.Error())
 		return
 	}
 
@@ -75,15 +75,15 @@ func (s *Server) InsertList(w http.ResponseWriter, r *http.Request) {
 	if err := s.Ydb.InsertList(yl.UserID, yl); err != nil {
 		if errnf, ok := err.(database.ListExistsError); ok {
 			log.WithError(errnf).Info("list not found")
-			renderJSON(w, http.StatusConflict, responseError{Code: "ListExists", Message: "List already exists"})
+			renderJSON(w, r, http.StatusConflict, responseError{Code: "ListExists", Message: "List already exists"})
 			return
 		}
 		log.WithError(err).Error("failed to insert list")
-		renderInternalServerError(w)
+		renderInternalServerError(w, r)
 		return
 	}
 
 	out := InsertListOutput{ListID: input.ListID}
 	log.WithField("output", out).Debug("list inserted")
-	renderJSON(w, http.StatusCreated, out)
+	renderJSON(w, r, http.StatusCreated, out)
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/TheYeung1/yata-server/server/request"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 type InsertListItemInput struct {
@@ -44,17 +43,18 @@ type InsertListItemOutput struct {
 }
 
 func (s *Server) InsertListItem(w http.ResponseWriter, r *http.Request) {
+	log := request.Logger(r.Context())
 	uid, ok := request.UserID(r.Context())
 	if !ok {
 		log.Error("failed to get user ID from request context")
-		renderInternalServerError(w)
+		renderInternalServerError(w, r)
 		return
 	}
 
 	var input InsertListItemInput
 	if err := bindJSON(r.Body, &input); err != nil {
 		log.WithError(err).Info("failed to bind input")
-		renderBadRequest(w, "malformed input")
+		renderBadRequest(w, r, "malformed input")
 		return
 	}
 	log.WithField("input", input).Debug("input bound")
@@ -63,12 +63,12 @@ func (s *Server) InsertListItem(w http.ResponseWriter, r *http.Request) {
 	listID := model.ListID(v["listID"])
 	if err := validateListID(listID); err != nil {
 		log.WithError(err).Info("failed to validate input")
-		renderBadRequest(w, err.Error())
+		renderBadRequest(w, r, err.Error())
 		return
 	}
 	if err := input.Validate(); err != nil {
 		log.WithError(err).Info("failed to normalize and validate input")
-		renderBadRequest(w, err.Error())
+		renderBadRequest(w, r, err.Error())
 		return
 	}
 
@@ -81,11 +81,11 @@ func (s *Server) InsertListItem(w http.ResponseWriter, r *http.Request) {
 	log.WithField("item", yi).Debug("inserting item")
 	if err := s.Ydb.InsertItem(yi); err != nil {
 		log.WithError(err).Error("failed to insert item")
-		renderInternalServerError(w)
+		renderInternalServerError(w, r)
 		return
 	}
 
 	out := InsertListItemOutput{ItemID: input.ItemID}
 	log.WithField("output", out).Debug("item inserted")
-	renderJSON(w, http.StatusCreated, out)
+	renderJSON(w, r, http.StatusCreated, out)
 }
