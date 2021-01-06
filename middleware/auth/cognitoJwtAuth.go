@@ -10,7 +10,6 @@ import (
 	"github.com/TheYeung1/yata-server/config"
 	"github.com/TheYeung1/yata-server/server/request"
 	"github.com/dgrijalva/jwt-go"
-	log "github.com/sirupsen/logrus"
 )
 
 type CognitoJwtAuthMiddleware struct {
@@ -19,6 +18,7 @@ type CognitoJwtAuthMiddleware struct {
 
 func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log := request.Logger(r.Context())
 		tokenString := r.Header.Get("Authorization")
 		if len(tokenString) == 0 {
 			log.Error("request does not contain an Auth token")

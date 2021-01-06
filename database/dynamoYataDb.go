@@ -1,12 +1,13 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	log "github.com/sirupsen/logrus"
 )
 
 type DynamoDbYataDatabase struct {
@@ -28,8 +29,7 @@ func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (mod
 		},
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to get item")
-		return model.YataList{}, err
+		return model.YataList{}, fmt.Errorf("failed to get item: %v", err)
 	}
 
 	if queryResults.Item == nil {
@@ -42,8 +42,7 @@ func (db *DynamoDbYataDatabase) GetList(uid model.UserID, lid model.ListID) (mod
 	yl := model.YataList{}
 	err = dynamodbattribute.UnmarshalMap(queryResults.Item, &yl)
 	if err != nil {
-		log.WithError(err).Error("failed to unmarshal map")
-		return model.YataList{}, err
+		return model.YataList{}, fmt.Errorf("failed to unmarshal map: %v", err)
 	}
 	return yl, nil
 }
@@ -59,15 +58,13 @@ func (db *DynamoDbYataDatabase) GetLists(uid model.UserID) ([]model.YataList, er
 		},
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to query")
-		return nil, err
+		return nil, fmt.Errorf("failed to query: %v", err)
 	}
 
 	yl := []model.YataList{}
 	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &yl)
 	if err != nil {
-		log.WithError(err).Error("failed to unmarshal list of maps")
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal list of maps: %v", err)
 	}
 	return yl, nil
 }
@@ -75,8 +72,7 @@ func (db *DynamoDbYataDatabase) GetLists(uid model.UserID) ([]model.YataList, er
 func (db *DynamoDbYataDatabase) InsertList(uid model.UserID, yl model.YataList) error {
 	av, err := dynamodbattribute.MarshalMap(yl)
 	if err != nil {
-		log.WithError(err).Error("failed to marshal map")
-		return err
+		return fmt.Errorf("failed to marshal map: %v", err)
 	}
 	_, err = db.Dynamo.PutItem(&dynamodb.PutItemInput{
 		TableName:           aws.String(db.ListsTableName),
@@ -88,18 +84,15 @@ func (db *DynamoDbYataDatabase) InsertList(uid model.UserID, yl model.YataList) 
 			switch aerr.Code() {
 			case dynamodb.ErrCodeConditionalCheckFailedException:
 				// TODO: get the item and check that the title matches before throwing a 409.
-				log.WithError(aerr).Warn("list already exists")
 				return ListExistsError{
 					uid: uid,
 					lid: yl.ListID,
 				}
 			default:
-				log.WithError(aerr).Error("failed to put item")
-				return err
+				return fmt.Errorf("failed to put item: %v", aerr)
 			}
 		}
-		log.WithError(err).Error("failed to put item")
-		return err
+		return fmt.Errorf("failed to put item: %v", err)
 	}
 	return nil
 }
@@ -115,15 +108,13 @@ func (db *DynamoDbYataDatabase) GetAllItems(uid model.UserID) ([]model.YataItem,
 		},
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to query")
-		return nil, err
+		return nil, fmt.Errorf("failed to query: %v", err)
 	}
 
 	items := []model.YataItem{}
 	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &items)
 	if err != nil {
-		log.WithError(err).Error("failed to unmarshal list of maps")
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal list of maps: %v", err)
 	}
 	return items, nil
 }
@@ -145,15 +136,13 @@ func (db *DynamoDbYataDatabase) GetListItems(uid model.UserID, lid model.ListID)
 		},
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to query")
-		return nil, err
+		return nil, fmt.Errorf("failed to query: %v", err)
 	}
 
 	items := []model.YataItem{}
 	err = dynamodbattribute.UnmarshalListOfMaps(queryResults.Items, &items)
 	if err != nil {
-		log.WithError(err).Error("failed to unmarshal list of maps")
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal list of maps: %v", err)
 	}
 	return items, nil
 }
@@ -163,8 +152,7 @@ func (db *DynamoDbYataDatabase) InsertItem(item model.YataItem) error {
 
 	av, err := dynamodbattribute.MarshalMap(item)
 	if err != nil {
-		log.WithError(err).Error("failed to marshal map")
-		return err
+		return fmt.Errorf("failed to marshal map: %v", err)
 	}
 	av["ListID-ItemID"] = &dynamodb.AttributeValue{
 		S: aws.String(string(item.ListID) + ":" + string(item.ItemID)),
@@ -174,8 +162,7 @@ func (db *DynamoDbYataDatabase) InsertItem(item model.YataItem) error {
 		Item:      av,
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to put item")
-		return err
+		return fmt.Errorf("failed to put item: %v", err)
 	}
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/TheYeung1/yata-server/model"
 	"github.com/TheYeung1/yata-server/server/request"
-	log "github.com/sirupsen/logrus"
 )
 
 // getUserIDFromContext returns the userID stored on the request context.
@@ -40,20 +39,20 @@ type responseError struct {
 
 // renderJSON writes the response code, sets the content type for JSON, and encodes v as JSON to w.
 // In an ideal world we might want to look at the incoming request's "Accept" header.
-func renderJSON(w http.ResponseWriter, code int, v interface{}) {
+func renderJSON(w http.ResponseWriter, r *http.Request, code int, v interface{}) {
 	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json") // FYI: https://stackoverflow.com/questions/477816/what-is-the-correct-json-content-type
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		log.WithError(err).Warn("failed to render json")
+		request.Logger(r.Context()).WithError(err).Warn("failed to render json")
 	}
 }
 
-func renderInternalServerError(w http.ResponseWriter) {
-	renderJSON(w, http.StatusInternalServerError, responseError{Code: "InternalServerError"})
+func renderInternalServerError(w http.ResponseWriter, r *http.Request) {
+	renderJSON(w, r, http.StatusInternalServerError, responseError{Code: "InternalServerError"})
 }
 
-func renderBadRequest(w http.ResponseWriter, msg string) {
-	renderJSON(w, http.StatusBadRequest, responseError{Code: "BadRequest", Message: msg})
+func renderBadRequest(w http.ResponseWriter, r *http.Request, msg string) {
+	renderJSON(w, r, http.StatusBadRequest, responseError{Code: "BadRequest", Message: msg})
 }
 
 func validateListID(id model.ListID) error {
