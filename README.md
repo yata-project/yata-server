@@ -93,10 +93,11 @@ See the "Advanced Configuration" section to customize the table names.
 ### Hitting an API Endpoint
 
 ```
-curl -H "Authorization: Bearer TOKEN" http://localhost:8888/items
+export TOKEN=<TOKEN>
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8888/items
 ```
 
-Where the `TOKEN` is the same `TOKEN` you retrieved when getting the JWT token
+Where the `<TOKEN>` is the same `TOKEN` you retrieved when getting the JWT token
 earlier.
 
 #### Examples
@@ -104,31 +105,37 @@ earlier.
 **Listing all your items**
 
 ```
-curl -H "Authorization: Bearer TOKEN" http://localhost:8888/items
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8888/items
 ```
 
 **Listing all your lists**
 
 ```
-curl -H "Authorization: Bearer TOKEN" http://localhost:8888/lists
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8888/lists
+```
+
+**Getting a list**
+
+```
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8888/lists/<listID>/
 ```
 
 **Creating a list**
 
 ```
-curl -X PUT -d '{"ListID":"ID1","Title":"My First List"}' -H "Authorization: Bearer TOKEN" http://localhost:8888/lists
+curl -X PUT -d '{"ListID":"ID1","Title":"My First List"}' -H "Authorization: Bearer $TOKEN" http://localhost:8888/lists
 ```
 
 **Adding an item to a list**
 
 ```
-curl -X PUT -d '{"ItemID":"ID1","Content":"My First Item"}' -H "Authorization: Bearer TOKEN" http://localhost:8888/lists/<listID>/items
+curl -X PUT -d '{"ItemID":"ID1","Content":"My First Item"}' -H "Authorization: Bearer $TOKEN" http://localhost:8888/lists/<listID>/items
 ```
 
 **Listing the items on a list**
 
 ```
-curl -H "Authorization: Bearer TOKEN" http://localhost:8888/lists/<listID>/items
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8888/lists/<listID>/items
 ```
 
 ### Advanced Configuration
