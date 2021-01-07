@@ -28,12 +28,14 @@ func (s *Server) Start() {
 		}
 		return u.String()
 	}))
-	r.Use(auth.CognitoJwtAuthMiddleware{Cfg: s.CognitoCfg}.Execute)
-	r.HandleFunc("/items", s.GetAllItems).Methods(http.MethodGet)
-	r.HandleFunc("/lists", s.GetLists).Methods(http.MethodGet)
-	r.HandleFunc("/lists", s.InsertList).Methods(http.MethodPut)
-	r.HandleFunc("/lists/{listID}/", s.GetList).Methods(http.MethodGet)
-	r.HandleFunc("/lists/{listID}/items", s.GetListItems).Methods(http.MethodGet)
-	r.HandleFunc("/lists/{listID}/items", s.InsertListItem).Methods(http.MethodPut)
+	r.Use(mux.CORSMethodMiddleware(r),
+		middleware.CORSAccessControlHeadersMiddleware,
+		auth.CognitoJwtAuthMiddleware{Cfg: s.CognitoCfg}.Execute)
+	r.HandleFunc("/items", s.GetAllItems).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/lists", s.GetLists).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/lists", s.InsertList).Methods(http.MethodPut, http.MethodOptions)
+	r.HandleFunc("/lists/{listID}/", s.GetList).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/lists/{listID}/items", s.GetListItems).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/lists/{listID}/items", s.InsertListItem).Methods(http.MethodPut, http.MethodOptions)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
