@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -56,6 +57,7 @@ func (middleware CognitoJwtAuthMiddleware) Execute(next http.Handler) http.Handl
 		log.WithField("claims", cognitoClaims).Debug("claims validated")
 
 		r = r.WithContext(request.WithUserID(r.Context(), cognitoClaims.Subject))
+		r = r.WithContext(WithCognitoClaims(r.Context(), cognitoClaims))
 
 		if token.Valid {
 			next.ServeHTTP(w, r)
@@ -107,4 +109,20 @@ func writeBadRequestHttpResponse(w http.ResponseWriter, msg string) {
 func writeInternalErrorResponse(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusInternalServerError)
 	_, _ = w.Write([]byte(msg))
+}
+
+type ctxKey string
+
+const cognitoClaimsCtxKey ctxKey = "cognitoClaims"
+
+// WithCognitoClaims stores the cognitoClaims on the returned context.
+func WithCognitoClaims(ctx context.Context, claims *CognitoJwtClaims) context.Context {
+	return context.WithValue(ctx, cognitoClaimsCtxKey, claims)
+}
+
+// CognitoClaims returns the CognitoJwtClaims stored on the context.
+// If the claims were found it will return true, false otherwise.
+func CognitoClaims(ctx context.Context) (*CognitoJwtClaims, bool) {
+	claims, ok := ctx.Value(cognitoClaimsCtxKey).(*CognitoJwtClaims)
+	return claims, ok
 }

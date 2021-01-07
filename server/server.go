@@ -35,5 +35,6 @@ func (s *Server) Start() {
 	r.HandleFunc("/lists/{listID}/", s.GetList).Methods(http.MethodGet)
 	r.HandleFunc("/lists/{listID}/items", s.GetListItems).Methods(http.MethodGet)
 	r.HandleFunc("/lists/{listID}/items", s.InsertListItem).Methods(http.MethodPut)
+	r.HandleFunc("/me", s.WhoAmI).Methods(http.MethodGet)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
